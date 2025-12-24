@@ -1,27 +1,32 @@
 # Sniffratx - Project Context
 
 **Last Updated:** December 23, 2024
-**Conversation ID:** sniffratx-app
+**App Name:** Sniffr ATX
+**Conversation:** sniffratx-app
 
 ---
 
-## Project Overview
+## Quick Summary
 
-**App Name:** Sniffr ATX (sniffratx)
-**Tagline:** Safe, casual connections for dog owners - without exchanging phone numbers
-**Target Market:** Austin, TX dog park community
+Dog park social app for Austin, TX. Connect with other dog owners via QR code instead of exchanging phone numbers. Built with Expo + React Native + Supabase.
 
 ---
 
-## What We're Building
+## Project Location
 
-A mobile app that lets dog owners connect at dog parks via QR code exchange instead of phone numbers. Core features:
+```
+~/sniffratx-app/
+```
 
-1. **User + Dog Profiles** - Create profiles for yourself and your pup
-2. **QR Code Exchange** - Generate unique QR, scan others to connect
-3. **Connections List** - See all your park friends in one place
-4. **In-App Messaging** - Chat without sharing personal contact info
-5. **Favorite Places** - Show where you frequent with your dog
+---
+
+## Key Credentials
+
+- **EAS Project ID:** fd2f8973-82b6-4841-9dfa-491e63fe061a
+- **Supabase Project:** sniffrATX (ref: kuoiomsljinuxjumkkvy)
+- **Supabase URL:** https://kuoiomsljinuxjumkkvy.supabase.co
+- **Bundle ID:** com.sniffratx.app
+- **GitHub:** https://github.com/Dakota-AI/sniffratx
 
 ---
 
@@ -29,67 +34,49 @@ A mobile app that lets dog owners connect at dog parks via QR code exchange inst
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React Native (Expo) |
+| Frontend | React Native (Expo SDK 54) |
 | Navigation | Expo Router |
-| Backend | Supabase (Auth, Database, Storage, Realtime) |
-| Styling | NativeWind (Tailwind CSS) |
-| QR Code | react-native-qrcode-svg, expo-camera |
-| Build | EAS Build (cloud builds, no Xcode needed locally) |
+| Backend | Supabase (Auth, DB, Storage, Realtime) |
+| Build | EAS Build |
+| Styling | React Native StyleSheet |
 
 ---
 
-## Key Files
+## App Structure
 
-| File | Purpose |
-|------|---------|
-| `docs/PRD.md` | Product requirements, user stories, features |
-| `docs/ARCHITECTURE.md` | System design, component structure |
-| `docs/DATABASE_SCHEMA.md` | Supabase PostgreSQL schema + RLS policies |
-| `docs/API_DESIGN.md` | Supabase client API patterns |
-| `docs/7_DAY_SPRINT.md` | Day-by-day development plan |
-| `docs/SETUP_GUIDE.md` | Environment setup instructions |
-| `types/database.ts` | TypeScript types for database models |
-
----
-
-## Current Status
-
-### Completed
-- [x] Created GitHub repo: `Dakota-AI/sniffratx`
-- [x] Full documentation package prepared
-- [x] Database schema designed
-- [x] API patterns documented
-- [x] 7-day sprint plan created
-- [x] Expo project initialized with EAS
-- [x] Auth flow (login/signup)
-- [x] User profile screens (view/edit)
-- [x] Dog profile screens
-- [x] QR code generation
-- [x] QR code scanner
-- [x] Connections list with pending requests
-- [x] Real-time messaging
-
-### In Progress
-- [ ] Set up Supabase project
-- [ ] Run database schema
-
-### Next Steps
-1. Create Supabase project at supabase.com
-2. Run database schema from docs/DATABASE_SCHEMA.md
-3. Create storage buckets (avatars, dogs)
-4. Add Supabase credentials to .env
-5. Test the app with `npx expo start`
-6. Build with EAS and submit to App Store
+```
+app/
+├── _layout.tsx           # Root layout with auth check
+├── (auth)/
+│   ├── _layout.tsx
+│   ├── login.tsx         # Email/password login
+│   └── signup.tsx        # Create account
+├── (tabs)/
+│   ├── _layout.tsx       # Tab bar (Connections, Scan, Messages, Profile)
+│   ├── index.tsx         # Connections list
+│   ├── scan.tsx          # QR scanner
+│   ├── messages/
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx     # Conversations list
+│   │   └── [id].tsx      # Chat screen
+│   └── profile/
+│       ├── _layout.tsx
+│       ├── index.tsx     # My profile
+│       ├── edit.tsx      # Edit profile + dog
+│       ├── my-qr.tsx     # QR code display
+│       ├── requests.tsx  # Pending connection requests
+│       └── [userId].tsx  # View other profiles
+```
 
 ---
 
-## Database Schema Summary
+## Database Schema
 
 **Tables:**
-- `profiles` - User data (extends auth.users)
+- `profiles` - User profiles (linked to auth.users)
 - `dogs` - Dog profiles (1:1 with user for MVP)
-- `connections` - User-to-user connections (pending/accepted/declined/blocked)
-- `messages` - Chat messages between connected users
+- `connections` - User connections (pending/accepted/declined/blocked)
+- `messages` - Chat messages
 
 **Storage Buckets:**
 - `avatars` - User profile photos
@@ -97,53 +84,81 @@ A mobile app that lets dog owners connect at dog parks via QR code exchange inst
 
 ---
 
-## Design Decisions
+## Features Built
 
-1. **QR-first connection** - No username search in MVP, forces in-person meeting
-2. **One dog per user (MVP)** - Simplifies onboarding, can expand later
-3. **Supabase for everything** - Auth, DB, storage, realtime - no custom backend
-4. **EAS cloud builds** - No Xcode required locally
-5. **NativeWind** - Tailwind familiarity, fast styling
-
----
-
-## User Context
-
-**Developer:** Dakota St. Pierre
-**Role:** AI-first developer helping startups
-**Interests:** Automotive, startups, animals, outdoors
-**Goal:** Learn the app store submission process by shipping a real app
+1. **Auth** - Email/password signup and login via Supabase
+2. **Profiles** - User profile with name, bio, photo
+3. **Dogs** - Dog profile with name, breed, age, bio, photo
+4. **QR Code** - Generate unique QR for easy connections
+5. **Scanner** - Camera-based QR scanning
+6. **Connections** - Send/accept/decline connection requests
+7. **Messaging** - Real-time chat between connected users
 
 ---
 
-## Important Notes
-
-- This is Dakota's first iOS App Store submission
-- Apple Developer account status: TBD (may need to enroll)
-- Timeline: Aggressive - aiming to ship ASAP
-- Approach: Build fast, iterate based on feedback
-
----
-
-## Commands Quick Reference
+## Commands
 
 ```bash
-# Start dev server
-npx expo start
+# Start development
+cd ~/sniffratx-app && npx expo start
 
-# Build for iOS (production)
+# Build for iOS
 eas build --platform ios --profile production
 
-# Build for Android (production)
+# Build for Android
 eas build --platform android --profile production
 
 # Submit to App Store
 eas submit --platform ios
 
-# Submit to Play Store
-eas submit --platform android
+# Push database changes
+supabase db push
 ```
 
 ---
 
-*This file is maintained for conversation continuity. Update when significant progress is made.*
+## Current Status
+
+### Completed
+- [x] GitHub repo created
+- [x] Documentation package
+- [x] Expo project with EAS
+- [x] All screens built (auth, tabs, profile, messages)
+- [x] Supabase database schema deployed
+- [x] Storage buckets created
+- [x] .env configured
+
+### In Progress
+- [ ] Testing app with Expo Go
+- [ ] UI polish
+
+### Next Steps
+1. Test app on device
+2. Create app icon and splash screen
+3. Build with EAS
+4. Submit to App Store
+
+---
+
+## Important Files
+
+| File | Purpose |
+|------|---------|
+| `.env` | Supabase credentials |
+| `app.json` | Expo config, bundle IDs, plugins |
+| `eas.json` | EAS build profiles |
+| `lib/supabase.ts` | Supabase client |
+| `types/database.ts` | TypeScript types |
+| `docs/DATABASE_SCHEMA.md` | Full SQL schema |
+
+---
+
+## User Info
+
+**Developer:** Dakota St. Pierre
+**Goal:** Learn App Store submission process
+**Location:** Austin, TX
+
+---
+
+*This file is maintained for conversation continuity.*
