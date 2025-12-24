@@ -60,18 +60,26 @@ A mobile app that lets dog owners connect at dog parks via QR code exchange inst
 - [x] Database schema designed
 - [x] API patterns documented
 - [x] 7-day sprint plan created
+- [x] Expo project initialized with EAS
+- [x] Auth flow (login/signup)
+- [x] User profile screens (view/edit)
+- [x] Dog profile screens
+- [x] QR code generation
+- [x] QR code scanner
+- [x] Connections list with pending requests
+- [x] Real-time messaging
 
 ### In Progress
-- [ ] Push documentation to GitHub
-- [ ] Initialize Expo project with EAS
 - [ ] Set up Supabase project
+- [ ] Run database schema
 
 ### Next Steps
-1. Push all docs to GitHub repo
-2. User provides EAS project credentials
-3. Initialize Expo project
-4. Set up Supabase and run database schema
-5. Start Day 1 of sprint: Auth flow
+1. Create Supabase project at supabase.com
+2. Run database schema from docs/DATABASE_SCHEMA.md
+3. Create storage buckets (avatars, dogs)
+4. Add Supabase credentials to .env
+5. Test the app with `npx expo start`
+6. Build with EAS and submit to App Store
 
 ---
 
