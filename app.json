@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Sniffr ATX",
+    "slug": "sniffratx",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "sniffratx",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4F46E5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sniffratx.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Sniffr ATX needs camera access to scan QR codes and connect with other dog owners.",
+        "NSPhotoLibraryUsageDescription": "Sniffr ATX needs photo library access to upload profile and dog photos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4F46E5"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.sniffratx.app",
+      "permissions": ["CAMERA"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fd2f8973-82b6-4841-9dfa-491e63fe061a"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Sniffr ATX needs camera access to scan QR codes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Sniffr ATX needs photo access to upload profile pictures."
+        }
+      ]
+    ]
+  }
+}
