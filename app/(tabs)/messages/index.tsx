@@ -7,21 +7,81 @@ import {
   StyleSheet,
   Image,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { Conversation } from '../../../types/database';
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../../../lib/theme';
+
+// Demo mode - set to true to preview UI
+const DEMO_MODE = true;
+
+const DEMO_CONVERSATIONS: Conversation[] = [
+  {
+    other_user_id: 'demo-1',
+    other_user: {
+      display_name: 'Sarah Johnson',
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    },
+    last_message: 'Max had so much fun at the park today! We should do it again soon 🐕',
+    last_message_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 mins ago
+    unread_count: 2,
+  },
+  {
+    other_user_id: 'demo-2',
+    other_user: {
+      display_name: 'Mike Chen',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    },
+    last_message: 'Are you going to Zilker this weekend?',
+    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+    unread_count: 0,
+  },
+  {
+    other_user_id: 'demo-3',
+    other_user: {
+      display_name: 'Emma Rodriguez',
+      avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+    },
+    last_message: 'Luna loved meeting your pup! Such a sweetie',
+    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+    unread_count: 1,
+  },
+];
 
 export default function MessagesScreen() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [conversations, setConversations] = useState<Conversation[]>(DEMO_MODE ? DEMO_CONVERSATIONS : []);
+  const [loading, setLoading] = useState(!DEMO_MODE);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
   const fetchConversations = async () => {
+    // Skip fetching in demo mode
+    if (DEMO_MODE) {
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Get blocked user IDs (both directions)
+    const { data: blockedByMe } = await supabase
+      .from('blocked_users')
+      .select('blocked_id')
+      .eq('blocker_id', user.id);
+
+    const { data: blockedMe } = await supabase
+      .from('blocked_users')
+      .select('blocker_id')
+      .eq('blocked_id', user.id);
+
+    const blockedIds = new Set<string>([
+      ...(blockedByMe?.map(b => b.blocked_id) || []),
+      ...(blockedMe?.map(b => b.blocker_id) || []),
+    ]);
 
     // Get all messages to build conversation list
     const { data: messages } = await supabase
@@ -39,12 +99,15 @@ export default function MessagesScreen() {
       return;
     }
 
-    // Group by conversation partner
+    // Group by conversation partner, excluding blocked users
     const conversationMap = new Map<string, Conversation>();
 
     for (const msg of messages) {
       const otherId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
       const otherProfile = msg.sender_id === user.id ? msg.receiver : msg.sender;
+
+      // Skip blocked users
+      if (blockedIds.has(otherId)) continue;
 
       if (!conversationMap.has(otherId)) {
         conversationMap.set(otherId, {
@@ -100,6 +163,7 @@ export default function MessagesScreen() {
     <TouchableOpacity
       style={styles.conversationCard}
       onPress={() => router.push(`/(tabs)/messages/${item.other_user_id}`)}
+      activeOpacity={0.7}
     >
       <Image
         source={
@@ -107,15 +171,29 @@ export default function MessagesScreen() {
             ? { uri: item.other_user.avatar_url }
             : require('../../../assets/icon.png')
         }
-        style={styles.avatar}
+        style={[
+          styles.avatar,
+          item.unread_count > 0 && styles.avatarUnread,
+        ]}
       />
       <View style={styles.conversationInfo}>
         <View style={styles.conversationHeader}>
-          <Text style={styles.conversationName}>{item.other_user.display_name}</Text>
+          <Text style={[
+            styles.conversationName,
+            item.unread_count > 0 && styles.conversationNameUnread,
+          ]}>
+            {item.other_user.display_name}
+          </Text>
           <Text style={styles.conversationTime}>{formatTime(item.last_message_at)}</Text>
         </View>
         <View style={styles.conversationPreview}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
+          <Text
+            style={[
+              styles.lastMessage,
+              item.unread_count > 0 && styles.lastMessageUnread,
+            ]}
+            numberOfLines={1}
+          >
             {item.last_message}
           </Text>
           {item.unread_count > 0 && (
@@ -129,18 +207,32 @@ export default function MessagesScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <Text style={styles.headerSubtitle}>
+          {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
+
       <FlatList
         data={conversations}
         renderItem={renderConversation}
         keyExtractor={(item) => item.other_user_id}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="chatbubbles" size={48} color={colors.primary} />
+            </View>
             <Text style={styles.emptyTitle}>No messages yet</Text>
             <Text style={styles.emptyText}>
               Connect with someone at the dog park to start chatting!
@@ -148,35 +240,57 @@ export default function MessagesScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
+  },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   list: {
-    padding: 16,
-    gap: 8,
+    padding: spacing.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
   },
   conversationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.md,
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.surfaceHover,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  avatarUnread: {
+    borderColor: colors.primary,
   },
   conversationInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing.md,
   },
   conversationHeader: {
     flexDirection: 'row',
@@ -184,52 +298,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conversationName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
+    color: colors.textPrimary,
+  },
+  conversationNameUnread: {
+    fontWeight: fontWeight.bold,
   },
   conversationTime: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
   },
   conversationPreview: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   lastMessage: {
     flex: 1,
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  lastMessageUnread: {
+    color: colors.textPrimary,
+    fontWeight: fontWeight.medium,
   },
   unreadBadge: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginLeft: 8,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
   },
   unreadText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.textInverse,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 32,
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.surfaceHover,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
+    lineHeight: 22,
   },
 });

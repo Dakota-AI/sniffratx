@@ -34,7 +34,7 @@ Dog park social app for Austin, TX. Connect with other dog owners via QR code in
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React Native (Expo SDK 54) |
+| Frontend | React Native (Expo SDK 52) |
 | Navigation | Expo Router |
 | Backend | Supabase (Auth, DB, Storage, Realtime) |
 | Build | EAS Build |
@@ -127,16 +127,23 @@ supabase db push
 - [x] Supabase database schema deployed
 - [x] Storage buckets created
 - [x] .env configured
+- [x] Fixed React version mismatch (downgraded to SDK 52)
+- [x] Expo server running successfully
 
 ### In Progress
-- [ ] Testing app with Expo Go
+- [ ] Testing app with Expo Go on device
 - [ ] UI polish
 
 ### Next Steps
-1. Test app on device
+1. Test app on device with Expo Go
 2. Create app icon and splash screen
 3. Build with EAS
 4. Submit to App Store
+
+### Issues Fixed
+- SDK 54 had React 19 compatibility issues with expo-router
+- Downgraded to Expo SDK 52 with React 18.3.1
+- All package versions now compatible
 
 ---
 

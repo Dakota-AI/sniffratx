@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ export default function ScanScreen() {
   const [scannedUser, setScannedUser] = useState<ScannedUser | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const isProcessing = useRef(false);
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -45,7 +46,9 @@ export default function ScanScreen() {
   }
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
-    if (scanned) return;
+    // Use ref for immediate blocking (state updates are async)
+    if (isProcessing.current || scanned) return;
+    isProcessing.current = true;
     setScanned(true);
 
     try {
@@ -54,6 +57,7 @@ export default function ScanScreen() {
       if (payload.type !== 'sniffr-atx') {
         Alert.alert('Invalid QR Code', 'This is not a Sniffr ATX QR code.');
         setScanned(false);
+        isProcessing.current = false;
         return;
       }
 
@@ -64,6 +68,7 @@ export default function ScanScreen() {
       if (payload.userId === user.id) {
         Alert.alert('Oops!', "That's your own QR code!");
         setScanned(false);
+        isProcessing.current = false;
         return;
       }
 
@@ -83,6 +88,7 @@ export default function ScanScreen() {
       if (!profile) {
         Alert.alert('User Not Found', 'This user no longer exists.');
         setScanned(false);
+        isProcessing.current = false;
         return;
       }
 
@@ -96,6 +102,7 @@ export default function ScanScreen() {
       if (existing) {
         Alert.alert('Already Connected', `You're already connected with ${profile.display_name}!`);
         setScanned(false);
+        isProcessing.current = false;
         return;
       }
 
@@ -104,6 +111,7 @@ export default function ScanScreen() {
     } catch (e) {
       Alert.alert('Invalid QR Code', 'Could not read this QR code.');
       setScanned(false);
+      isProcessing.current = false;
     }
   };
 
@@ -126,6 +134,7 @@ export default function ScanScreen() {
     setShowModal(false);
     setScanned(false);
     setScannedUser(null);
+    isProcessing.current = false;
 
     if (error) {
       Alert.alert('Error', 'Failed to send connection request.');
@@ -142,12 +151,11 @@ export default function ScanScreen() {
           barcodeTypes: ['qr'],
         }}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.scanFrame} />
-          <Text style={styles.scanText}>Point camera at a Sniffr ATX QR code</Text>
-        </View>
-      </CameraView>
+      />
+      <View style={styles.overlay}>
+        <View style={styles.scanFrame} />
+        <Text style={styles.scanText}>Point camera at a Sniffr ATX QR code</Text>
+      </View>
 
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -180,6 +188,7 @@ export default function ScanScreen() {
                       setShowModal(false);
                       setScanned(false);
                       setScannedUser(null);
+                      isProcessing.current = false;
                     }}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -212,7 +221,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',

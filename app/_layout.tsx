@@ -3,6 +3,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { View, ActivityIndicator } from 'react-native';
+import { registerForPushNotifications, addNotificationResponseListener } from '../lib/services/notificationService';
+import { colors } from '../lib/theme';
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
@@ -25,6 +27,25 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Register for push notifications when user is logged in
+  useEffect(() => {
+    if (session) {
+      registerForPushNotifications();
+    }
+  }, [session]);
+
+  // Handle notification taps
+  useEffect(() => {
+    const subscription = addNotificationResponseListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.eventId) {
+        router.push(`/(tabs)/calendar/${data.eventId}`);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   useEffect(() => {
     if (loading) return;
 
@@ -41,8 +62,8 @@ export default function RootLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#4F46E5' }}>
-        <ActivityIndicator size="large" color="#ffffff" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary }}>
+        <ActivityIndicator size="large" color={colors.textInverse} />
       </View>
     );
   }
@@ -51,7 +72,6 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(onboarding)" />
     </Stack>
   );
 }

@@ -25,6 +25,11 @@ export interface Dog {
 
 export type ConnectionStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
 
+// Calendar types
+export type EventType = 'playdate' | 'vet_appointment' | 'vaccination' | 'medication' | 'custom';
+export type InvitationStatus = 'pending' | 'accepted' | 'declined';
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface Connection {
   id: string;
   requester_id: string;
@@ -41,6 +46,67 @@ export interface Message {
   content: string;
   read_at: string | null;
   created_at: string;
+}
+
+export interface BlockedUser {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
+}
+
+// Calendar Event
+export interface CalendarEvent {
+  id: string;
+  owner_id: string;
+  dog_id: string | null;
+  event_type: EventType;
+  title: string;
+  description: string | null;
+  location: string | null;
+  start_time: string;
+  end_time: string | null;
+  all_day: boolean;
+  native_calendar_id: string | null;
+  recurrence: RecurrenceType;
+  recurrence_end_date: string | null;
+  expiration_date: string | null;
+  vaccination_type: string | null;
+  medication_name: string | null;
+  dosage: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Playdate Invitation
+export interface PlaydateInvitation {
+  id: string;
+  event_id: string;
+  invitee_id: string;
+  status: InvitationStatus;
+  responded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Event Reminder
+export interface EventReminder {
+  id: string;
+  event_id: string;
+  remind_before_minutes: number;
+  notification_sent: boolean;
+  notification_id: string | null;
+  created_at: string;
+}
+
+// Push Token
+export interface PushToken {
+  id: string;
+  user_id: string;
+  token: string;
+  platform: 'ios' | 'android';
+  created_at: string;
+  updated_at: string;
 }
 
 // Extended types with relationships
@@ -62,6 +128,23 @@ export interface Conversation {
   last_message: string;
   last_message_at: string;
   unread_count: number;
+}
+
+// Calendar extended types
+export interface CalendarEventWithInvitations extends CalendarEvent {
+  invitations: PlaydateInvitationWithProfile[];
+}
+
+export interface PlaydateInvitationWithProfile extends PlaydateInvitation {
+  invitee: Profile;
+}
+
+export interface PlaydateInvitationWithEvent extends PlaydateInvitation {
+  event: CalendarEventWithOwner;
+}
+
+export interface CalendarEventWithOwner extends CalendarEvent {
+  owner: Profile;
 }
 
 // QR Code payload
@@ -97,6 +180,30 @@ export interface UpdateDogInput {
   breed?: string;
   age_years?: number;
   bio?: string;
+}
+
+// Calendar form types
+export interface CreateEventInput {
+  event_type: EventType;
+  title: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time?: string;
+  all_day?: boolean;
+  dog_id?: string;
+  recurrence?: RecurrenceType;
+  recurrence_end_date?: string;
+  expiration_date?: string;
+  vaccination_type?: string;
+  medication_name?: string;
+  dosage?: string;
+  invitee_ids?: string[];
+  reminder_minutes?: number[];
+}
+
+export interface UpdateEventInput extends Partial<CreateEventInput> {
+  id: string;
 }
 
 // Auth types
@@ -151,9 +258,32 @@ export interface Database {
         Insert: Omit<Message, 'id' | 'created_at'>;
         Update: Partial<Pick<Message, 'read_at'>>;
       };
+      calendar_events: {
+        Row: CalendarEvent;
+        Insert: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<CalendarEvent, 'id' | 'owner_id' | 'created_at'>>;
+      };
+      playdate_invitations: {
+        Row: PlaydateInvitation;
+        Insert: Omit<PlaydateInvitation, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Pick<PlaydateInvitation, 'status' | 'responded_at'>>;
+      };
+      event_reminders: {
+        Row: EventReminder;
+        Insert: Omit<EventReminder, 'id' | 'created_at'>;
+        Update: Partial<Pick<EventReminder, 'notification_sent' | 'notification_id'>>;
+      };
+      push_tokens: {
+        Row: PushToken;
+        Insert: Omit<PushToken, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Pick<PushToken, 'token'>>;
+      };
     };
     Enums: {
       connection_status: ConnectionStatus;
+      event_type: EventType;
+      invitation_status: InvitationStatus;
+      recurrence_type: RecurrenceType;
     };
   };
 }

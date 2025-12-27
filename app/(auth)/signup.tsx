@@ -8,9 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  StatusBar,
+  ScrollView,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../../lib/theme';
 
 export default function SignupScreen() {
   const [displayName, setDisplayName] = useState('');
@@ -21,12 +25,12 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     if (!displayName || !email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Oops!', 'Please fill in all fields');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Oops!', 'Password must be at least 6 characters');
       return;
     }
 
@@ -45,136 +49,241 @@ export default function SignupScreen() {
       Alert.alert('Error', error.message);
     } else {
       Alert.alert(
-        'Success',
-        'Account created! Please check your email to verify your account.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+        'Welcome to Sniffr ATX! 🐕',
+        'Your account has been created. Let\'s find some dog park friends!',
+        [{ text: 'Let\'s Go!', onPress: () => router.replace('/(tabs)') }]
       );
     }
     setLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>Join Sniffr ATX</Text>
-        <Text style={styles.subtitle}>Connect with dog park friends</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Your Name"
-            placeholderTextColor="#9CA3AF"
-            value={displayName}
-            onChangeText={setDisplayName}
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#9CA3AF"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#9CA3AF"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSignup}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </Text>
-          </TouchableOpacity>
+      {/* Orange Header Section */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logo}>🐕</Text>
+          </View>
+          <Text style={styles.appName}>Sniffr ATX</Text>
+          <Text style={styles.tagline}>Join the pack!</Text>
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-          <Link href="/(auth)/login" asChild>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>Sign In</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
+        <View style={styles.headerCurve} />
       </View>
-    </KeyboardAvoidingView>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.formSection}>
+            <Text style={styles.welcomeText}>Create your account</Text>
+
+            {/* Form Card */}
+            <View style={styles.card}>
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="person-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your name"
+                    placeholderTextColor={colors.textMuted}
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email address"
+                    placeholderTextColor={colors.textMuted}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password (min 6 characters)"
+                    placeholderTextColor={colors.textMuted}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleSignup}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
+                {!loading && <Ionicons name="arrow-forward" size={20} color={colors.textInverse} />}
+              </TouchableOpacity>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <Link href="/(auth)/login" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.linkText}>Sign in</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.background,
   },
-  content: {
-    flex: 1,
+  headerSection: {
+    backgroundColor: colors.primary,
+    paddingTop: 60,
+    paddingBottom: 40,
+    position: 'relative',
+  },
+  headerContent: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 8,
+  logo: {
+    fontSize: 44,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#C7D2FE',
-    textAlign: 'center',
-    marginBottom: 48,
+  appName: {
+    fontSize: 28,
+    fontWeight: fontWeight.bold,
+    color: colors.textInverse,
+    marginBottom: spacing.xs,
   },
-  form: {
-    gap: 16,
+  tagline: {
+    fontSize: fontSize.md,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  headerCurve: {
+    position: 'absolute',
+    bottom: -20,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  formSection: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  welcomeText: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    ...shadows.lg,
+  },
+  inputContainer: {
+    marginBottom: spacing.md,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceHover,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  inputIcon: {
+    paddingLeft: spacing.md,
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: '#1F2937',
+    flex: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
   },
   button: {
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonDisabled: {
     opacity: 0.7,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    color: colors.textInverse,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: spacing.xl,
   },
   footerText: {
-    color: '#C7D2FE',
-    fontSize: 16,
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
   },
   linkText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
   },
 });

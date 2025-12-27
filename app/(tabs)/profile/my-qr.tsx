@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Share, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Share,
+  TouchableOpacity,
+  SafeAreaView,
+  ActivityIndicator,
+} from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { QRPayload } from '../../../types/database';
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../../../lib/theme';
 
 export default function MyQRScreen() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -38,7 +47,7 @@ export default function MyQRScreen() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Connect with me on Sniffr ATX! My profile: ${displayName}`,
+        message: `Connect with me on Sniffr ATX! I'm ${displayName} - let's set up a dog park playdate!`,
       });
     } catch (error) {
       console.error(error);
@@ -48,114 +57,155 @@ export default function MyQRScreen() {
   if (!userId) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.qrCard}>
-        <View style={styles.qrContainer}>
-          <QRCode
-            value={JSON.stringify(qrPayload)}
-            size={250}
-            color="#1F2937"
-            backgroundColor="#FFFFFF"
-          />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        {/* QR Card */}
+        <View style={styles.qrCard}>
+          <View style={styles.qrHeader}>
+            <Text style={styles.qrEmoji}>🐕</Text>
+            <Text style={styles.scanMe}>Scan to Connect!</Text>
+          </View>
+
+          <View style={styles.qrContainer}>
+            <QRCode
+              value={JSON.stringify(qrPayload)}
+              size={220}
+              color={colors.textPrimary}
+              backgroundColor={colors.surface}
+            />
+          </View>
+
+          <Text style={styles.name}>{displayName}</Text>
+          <Text style={styles.instructions}>
+            Show this QR code to connect with other dog owners at the park!
+          </Text>
         </View>
 
-        <Text style={styles.name}>{displayName}</Text>
-        <Text style={styles.instructions}>
-          Show this QR code to connect with other dog owners at the park!
-        </Text>
-      </View>
+        {/* Share Button */}
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={handleShare}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="share-outline" size={20} color={colors.primary} />
+          <Text style={styles.shareButtonText}>Share Profile</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-        <Ionicons name="share-outline" size={20} color="#4F46E5" />
-        <Text style={styles.shareButtonText}>Share Profile</Text>
-      </TouchableOpacity>
-
-      <View style={styles.tipContainer}>
-        <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
-        <Text style={styles.tipText}>
-          The other person will need to accept your connection request before you can message each other.
-        </Text>
+        {/* Tip */}
+        <View style={styles.tipContainer}>
+          <View style={styles.tipIconContainer}>
+            <Ionicons name="information" size={16} color={colors.primary} />
+          </View>
+          <Text style={styles.tipText}>
+            The other person will need to accept your connection request before you can message each other.
+          </Text>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
-    padding: 24,
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: spacing.lg,
   },
   qrCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 32,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadows.lg,
+  },
+  qrHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  qrEmoji: {
+    fontSize: 40,
+    marginBottom: spacing.xs,
+  },
+  scanMe: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
   qrContainer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 4,
+    borderColor: colors.primaryLight,
   },
   name: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 24,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    marginTop: spacing.lg,
   },
   instructions: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 16,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    lineHeight: 20,
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 24,
-    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+    ...shadows.sm,
   },
   shareButtonText: {
-    color: '#4F46E5',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
   tipContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceHover,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  tipIconContainer: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    padding: 16,
-    marginTop: 24,
-    gap: 12,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tipText: {
     flex: 1,
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });

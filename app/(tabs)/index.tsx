@@ -7,24 +7,93 @@ import {
   StyleSheet,
   Image,
   RefreshControl,
+  SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { Connection, Profile, Dog } from '../../types/database';
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../../lib/theme';
 
 interface ConnectionWithProfile extends Connection {
   profiles: Profile & { dogs: Dog[] };
 }
 
+// Set to true to preview UI with demo connections
+const DEMO_MODE = true;
+
+const DEMO_CONNECTIONS: ConnectionWithProfile[] = [
+  {
+    id: 'demo-1',
+    requester_id: 'demo',
+    addressee_id: 'demo-1',
+    status: 'accepted',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    profiles: {
+      id: 'demo-1',
+      display_name: 'Sarah Johnson',
+      avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      bio: 'Dog mom to the best golden retriever!',
+      favorite_places: ['Zilker Park'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      dogs: [{ id: 'd1', owner_id: 'demo-1', name: 'Max', breed: 'Golden Retriever', age_years: 3, bio: null, photo_url: null, created_at: '', updated_at: '' }],
+    },
+  },
+  {
+    id: 'demo-2',
+    requester_id: 'demo',
+    addressee_id: 'demo-2',
+    status: 'accepted',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    profiles: {
+      id: 'demo-2',
+      display_name: 'Mike Chen',
+      avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      bio: 'Corgi dad',
+      favorite_places: ['Auditorium Shores'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      dogs: [{ id: 'd2', owner_id: 'demo-2', name: 'Biscuit', breed: 'Corgi', age_years: 2, bio: null, photo_url: null, created_at: '', updated_at: '' }],
+    },
+  },
+  {
+    id: 'demo-3',
+    requester_id: 'demo',
+    addressee_id: 'demo-3',
+    status: 'accepted',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    profiles: {
+      id: 'demo-3',
+      display_name: 'Emma Rodriguez',
+      avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+      bio: 'Rescue dog advocate',
+      favorite_places: ['Red Bud Isle'],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      dogs: [{ id: 'd3', owner_id: 'demo-3', name: 'Luna', breed: 'Mixed Breed', age_years: 4, bio: null, photo_url: null, created_at: '', updated_at: '' }],
+    },
+  },
+];
+
 export default function ConnectionsScreen() {
-  const [connections, setConnections] = useState<ConnectionWithProfile[]>([]);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [connections, setConnections] = useState<ConnectionWithProfile[]>(DEMO_MODE ? DEMO_CONNECTIONS : []);
+  const [pendingCount, setPendingCount] = useState(DEMO_MODE ? 2 : 0);
+  const [loading, setLoading] = useState(!DEMO_MODE);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
   const fetchConnections = async () => {
+    // Skip fetching in demo mode
+    if (DEMO_MODE) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -77,6 +146,7 @@ export default function ConnectionsScreen() {
       <TouchableOpacity
         style={styles.connectionCard}
         onPress={() => router.push(`/(tabs)/profile/${profile?.id}`)}
+        activeOpacity={0.7}
       >
         <Image
           source={
@@ -89,28 +159,45 @@ export default function ConnectionsScreen() {
         <View style={styles.connectionInfo}>
           <Text style={styles.connectionName}>{profile?.display_name}</Text>
           {dog && (
-            <Text style={styles.dogInfo}>
-              🐕 {dog.name} {dog.breed && `• ${dog.breed}`}
-            </Text>
+            <View style={styles.dogRow}>
+              <Text style={styles.dogEmoji}>🐕</Text>
+              <Text style={styles.dogInfo}>
+                {dog.name}{dog.breed && ` • ${dog.breed}`}
+              </Text>
+            </View>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+        <View style={styles.chevronContainer}>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Your Pack</Text>
+        <Text style={styles.headerSubtitle}>
+          {connections.length} connection{connections.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
+
+      {/* Pending Requests Banner */}
       {pendingCount > 0 && (
         <TouchableOpacity
           style={styles.pendingBanner}
           onPress={() => router.push('/(tabs)/profile/requests')}
+          activeOpacity={0.8}
         >
-          <Ionicons name="person-add" size={20} color="#FFFFFF" />
+          <View style={styles.pendingIconContainer}>
+            <Ionicons name="person-add" size={18} color={colors.textInverse} />
+          </View>
           <Text style={styles.pendingText}>
-            {pendingCount} pending request{pendingCount > 1 ? 's' : ''}
+            {pendingCount} new request{pendingCount > 1 ? 's' : ''}
           </Text>
-          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </TouchableOpacity>
       )}
 
@@ -120,114 +207,175 @@ export default function ConnectionsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="people-outline" size={64} color="#D1D5DB" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="paw" size={48} color={colors.primary} />
+            </View>
             <Text style={styles.emptyTitle}>No connections yet</Text>
             <Text style={styles.emptyText}>
-              Scan someone's QR code at the dog park to connect!
+              Head to the dog park and scan someone's QR code to make your first connection!
             </Text>
             <TouchableOpacity
               style={styles.scanButton}
               onPress={() => router.push('/(tabs)/scan')}
+              activeOpacity={0.8}
             >
-              <Ionicons name="qr-code" size={20} color="#FFFFFF" />
+              <Ionicons name="qr-code" size={20} color={colors.textInverse} />
               <Text style={styles.scanButtonText}>Scan QR Code</Text>
             </TouchableOpacity>
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
+  },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.primaryLight,
+    ...shadows.sm,
+  },
+  pendingIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pendingText: {
     flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.textPrimary,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    marginLeft: spacing.sm,
   },
   list: {
-    padding: 16,
-    gap: 12,
+    padding: spacing.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
   },
   connectionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.md,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#E5E7EB',
+    width: 60,
+    height: 60,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    borderWidth: 2,
+    borderColor: colors.primaryLight,
   },
   connectionInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing.md,
   },
   connectionName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  dogRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  dogEmoji: {
+    fontSize: 14,
+    marginRight: spacing.xs,
   },
   dogInfo: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  chevronContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 32,
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
+    lineHeight: 22,
   },
   scanButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 24,
-    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+    ...shadows.md,
   },
   scanButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.textInverse,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
 });

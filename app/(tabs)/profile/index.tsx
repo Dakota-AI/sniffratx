@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   StyleSheet,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { Profile, Dog } from '../../../types/database';
+import { colors, spacing, borderRadius, fontSize, fontWeight, shadows } from '../../../lib/theme';
 
 export default function MyProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -19,9 +21,12 @@ export default function MyProfileScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  // Refresh profile every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
 
   const fetchProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -60,260 +65,367 @@ export default function MyProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Image
-          source={
-            profile?.avatar_url
-              ? { uri: profile.avatar_url }
-              : require('../../../assets/icon.png')
-          }
-          style={styles.avatar}
-        />
-        <Text style={styles.name}>{profile?.display_name}</Text>
-        {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Orange Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={
+                profile?.avatar_url
+                  ? { uri: profile.avatar_url }
+                  : require('../../../assets/icon.png')
+              }
+              style={styles.avatar}
+            />
+          </View>
+          <Text style={styles.name}>{profile?.display_name}</Text>
+          {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+          <View style={styles.headerCurve} />
+        </View>
 
-        <View style={styles.headerButtons}>
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => router.push('/(tabs)/profile/edit')}
+            activeOpacity={0.7}
           >
-            <Ionicons name="pencil" size={16} color="#4F46E5" />
-            <Text style={styles.editButtonText}>Edit Profile</Text>
+            <Ionicons name="pencil" size={18} color={colors.primary} />
+            <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.qrButton}
             onPress={() => router.push('/(tabs)/profile/my-qr')}
+            activeOpacity={0.7}
           >
-            <Ionicons name="qr-code" size={16} color="#FFFFFF" />
-            <Text style={styles.qrButtonText}>My QR Code</Text>
+            <Ionicons name="qr-code" size={18} color={colors.textInverse} />
+            <Text style={styles.qrButtonText}>My QR</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={handleSignOut}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={18} color={colors.error} />
+            <Text style={styles.settingsButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {dog ? (
+        {/* Dog Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Dog</Text>
-          <View style={styles.dogCard}>
-            <Image
-              source={
-                dog.photo_url
-                  ? { uri: dog.photo_url }
-                  : require('../../../assets/icon.png')
-              }
-              style={styles.dogPhoto}
-            />
-            <View style={styles.dogInfo}>
-              <Text style={styles.dogName}>{dog.name}</Text>
-              {dog.breed && <Text style={styles.dogBreed}>{dog.breed}</Text>}
-              {dog.age_years && (
-                <Text style={styles.dogAge}>
-                  {dog.age_years} year{dog.age_years > 1 ? 's' : ''} old
-                </Text>
-              )}
-              {dog.bio && <Text style={styles.dogBio}>{dog.bio}</Text>}
+          <Text style={styles.sectionTitle}>My Pup</Text>
+          {dog ? (
+            <View style={styles.dogCard}>
+              <Image
+                source={
+                  dog.photo_url
+                    ? { uri: dog.photo_url }
+                    : require('../../../assets/icon.png')
+                }
+                style={styles.dogPhoto}
+              />
+              <View style={styles.dogInfo}>
+                <Text style={styles.dogName}>{dog.name}</Text>
+                {dog.breed && (
+                  <View style={styles.dogDetailRow}>
+                    <Ionicons name="paw-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.dogBreed}>{dog.breed}</Text>
+                  </View>
+                )}
+                {dog.age_years && (
+                  <View style={styles.dogDetailRow}>
+                    <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                    <Text style={styles.dogAge}>
+                      {dog.age_years} year{dog.age_years > 1 ? 's' : ''} old
+                    </Text>
+                  </View>
+                )}
+                {dog.bio && <Text style={styles.dogBio}>{dog.bio}</Text>}
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addDogButton}
+              onPress={() => router.push('/(tabs)/profile/edit')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.addDogIconContainer}>
+                <Ionicons name="add" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.addDogText}>Add your dog</Text>
+              <Text style={styles.addDogSubtext}>Let others know about your pup!</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Favorite Places */}
+        {profile?.favorite_places && profile.favorite_places.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Favorite Dog Parks</Text>
+            <View style={styles.placesList}>
+              {profile.favorite_places.map((place, index) => (
+                <View key={index} style={styles.placeTag}>
+                  <Ionicons name="location" size={14} color={colors.primary} />
+                  <Text style={styles.placeText}>{place}</Text>
+                </View>
+              ))}
             </View>
           </View>
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Dog</Text>
-          <TouchableOpacity
-            style={styles.addDogButton}
-            onPress={() => router.push('/(tabs)/profile/edit')}
-          >
-            <Ionicons name="add-circle-outline" size={24} color="#4F46E5" />
-            <Text style={styles.addDogText}>Add your dog</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        )}
 
-      {profile?.favorite_places && profile.favorite_places.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Favorite Places</Text>
-          <View style={styles.placesList}>
-            {profile.favorite_places.map((place, index) => (
-              <View key={index} style={styles.placeTag}>
-                <Ionicons name="location" size={14} color="#4F46E5" />
-                <Text style={styles.placeText}>{place}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Sign Out */}
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={20} color={colors.error} />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
-  header: {
+  headerSection: {
+    backgroundColor: colors.primary,
+    paddingTop: 60,
+    paddingBottom: 60,
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#FFFFFF',
+    position: 'relative',
+  },
+  headerCurve: {
+    position: 'absolute',
+    bottom: -20,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  avatarContainer: {
+    position: 'relative',
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.surfaceHover,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.primary,
   },
   name: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 16,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textInverse,
+    marginTop: spacing.md,
   },
   bio: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: fontSize.md,
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
   },
-  headerButtons: {
+  actionButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#4F46E5',
-    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    gap: spacing.xs,
   },
   editButtonText: {
-    color: '#4F46E5',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   qrButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
+    ...shadows.sm,
   },
   qrButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.textInverse,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+  },
+  settingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.errorLight,
+    gap: spacing.xs,
+  },
+  settingsButtonText: {
+    color: colors.error,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   section: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    padding: 16,
+    backgroundColor: colors.surface,
+    marginTop: spacing.md,
+    marginHorizontal: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
+    ...shadows.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
   },
   dogCard: {
     flexDirection: 'row',
-    gap: 16,
+    gap: spacing.md,
   },
   dogPhoto: {
     width: 80,
     height: 80,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surfaceHover,
   },
   dogInfo: {
     flex: 1,
   },
   dogName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
   },
-  dogBreed: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  dogAge: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  dogBio: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  addDogButton: {
+  dogDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  dogBreed: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  dogAge: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  dogBio: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  addDogButton: {
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
+    paddingVertical: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
     borderStyle: 'dashed',
-    gap: 8,
+  },
+  addDogIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.surfaceHover,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   addDogText: {
-    fontSize: 16,
-    color: '#4F46E5',
-    fontWeight: '500',
+    fontSize: fontSize.md,
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  addDogSubtext: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
   placesList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.sm,
   },
   placeTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
+    backgroundColor: colors.surfaceHover,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    gap: spacing.xs,
   },
   placeText: {
-    fontSize: 14,
-    color: '#4F46E5',
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
   },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    marginTop: 16,
-    marginBottom: 32,
-    padding: 16,
-    gap: 8,
+    backgroundColor: colors.surface,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.xl,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
+    ...shadows.sm,
   },
   signOutText: {
-    color: '#EF4444',
-    fontSize: 16,
-    fontWeight: '500',
+    color: colors.error,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
   },
 });

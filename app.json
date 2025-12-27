@@ -11,24 +11,30 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#4F46E5"
+      "backgroundColor": "#F97316"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sniffratx.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Sniffr ATX needs camera access to scan QR codes and connect with other dog owners.",
-        "NSPhotoLibraryUsageDescription": "Sniffr ATX needs photo library access to upload profile and dog photos."
+        "NSPhotoLibraryUsageDescription": "Sniffr ATX needs photo library access to upload profile and dog photos.",
+        "NSCalendarsUsageDescription": "Sniffr ATX needs calendar access to sync your dog events and playdates.",
+        "NSCalendarsFullAccessUsageDescription": "Sniffr ATX needs full calendar access to create and manage your dog events and playdate reminders."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#4F46E5"
+        "backgroundColor": "#F97316"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.sniffratx.app",
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -51,7 +57,21 @@
         {
           "photosPermission": "Sniffr ATX needs photo access to upload profile pictures."
         }
-      ]
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Sniffr ATX needs calendar access to sync your dog events and playdates."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#F97316"
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

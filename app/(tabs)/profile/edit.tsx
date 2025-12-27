@@ -14,6 +14,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { Profile, Dog } from '../../../types/database';
+import { uploadAvatar, uploadDogPhoto, isLocalUri } from '../../../lib/services/imageService';
+import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../../lib/theme';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -97,12 +99,24 @@ export default function EditProfileScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Update profile
+      // Upload avatar if it's a local file (new image picked)
+      let finalAvatarUrl = avatarUrl;
+      if (avatarUrl && isLocalUri(avatarUrl)) {
+        const uploadedUrl = await uploadAvatar(avatarUrl, user.id);
+        if (uploadedUrl) {
+          finalAvatarUrl = uploadedUrl;
+        } else {
+          Alert.alert('Warning', 'Could not upload profile photo, but other changes will be saved.');
+        }
+      }
+
+      // Update profile with avatar URL
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           display_name: displayName.trim(),
           bio: bio.trim() || null,
+          avatar_url: finalAvatarUrl,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -111,31 +125,54 @@ export default function EditProfileScreen() {
 
       // Update or create dog
       if (dogName.trim()) {
+        let currentDogId = dogId;
+
+        // If no dog exists, create one first to get the ID for photo upload
+        if (!currentDogId) {
+          const { data: newDog, error: createError } = await supabase
+            .from('dogs')
+            .insert({
+              name: dogName.trim(),
+              breed: dogBreed.trim() || null,
+              age_years: dogAge ? parseInt(dogAge) : null,
+              bio: dogBio.trim() || null,
+              owner_id: user.id,
+            })
+            .select('id')
+            .single();
+
+          if (createError) throw createError;
+          currentDogId = newDog.id;
+          setDogId(currentDogId);
+        }
+
+        // Upload dog photo if it's a local file
+        let finalDogPhotoUrl = dogPhotoUrl;
+        if (dogPhotoUrl && isLocalUri(dogPhotoUrl) && currentDogId) {
+          const uploadedUrl = await uploadDogPhoto(dogPhotoUrl, currentDogId);
+          if (uploadedUrl) {
+            finalDogPhotoUrl = uploadedUrl;
+          } else {
+            Alert.alert('Warning', 'Could not upload dog photo, but other changes will be saved.');
+          }
+        }
+
+        // Update dog with photo URL
         const dogData = {
           name: dogName.trim(),
           breed: dogBreed.trim() || null,
           age_years: dogAge ? parseInt(dogAge) : null,
           bio: dogBio.trim() || null,
+          photo_url: finalDogPhotoUrl,
           updated_at: new Date().toISOString(),
         };
 
-        if (dogId) {
-          const { error: dogError } = await supabase
-            .from('dogs')
-            .update(dogData)
-            .eq('id', dogId);
+        const { error: dogError } = await supabase
+          .from('dogs')
+          .update(dogData)
+          .eq('id', currentDogId);
 
-          if (dogError) throw dogError;
-        } else {
-          const { error: dogError } = await supabase
-            .from('dogs')
-            .insert({
-              ...dogData,
-              owner_id: user.id,
-            });
-
-          if (dogError) throw dogError;
-        }
+        if (dogError) throw dogError;
       }
 
       Alert.alert('Success', 'Profile updated!', [
@@ -285,7 +322,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -334,7 +371,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     marginHorizontal: 16,

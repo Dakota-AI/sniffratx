@@ -8,28 +8,87 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../lib/supabase';
 import { Message } from '../../../types/database';
+import { colors, spacing, borderRadius, fontSize, fontWeight } from '../../../lib/theme';
+
+// Demo mode
+const DEMO_MODE = true;
+
+const DEMO_MESSAGES: Record<string, Message[]> = {
+  'demo-1': [
+    { id: '1', sender_id: 'demo-1', receiver_id: 'me', content: 'Hey! I saw you at Zilker yesterday with your pup!', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
+    { id: '2', sender_id: 'me', receiver_id: 'demo-1', content: 'Oh hey! Yes that was us! Your golden is so beautiful', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString() },
+    { id: '3', sender_id: 'demo-1', receiver_id: 'me', content: 'Thanks! Max loved playing with your dog. They seemed to really get along!', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
+    { id: '4', sender_id: 'me', receiver_id: 'demo-1', content: 'Right?! We should set up a playdate sometime', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
+    { id: '5', sender_id: 'demo-1', receiver_id: 'me', content: 'Max had so much fun at the park today! We should do it again soon 🐕', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
+  ],
+  'demo-2': [
+    { id: '1', sender_id: 'me', receiver_id: 'demo-2', content: 'Hey Mike! Love your corgi', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
+    { id: '2', sender_id: 'demo-2', receiver_id: 'me', content: 'Thanks! Biscuit is a handful but the best boy', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString() },
+    { id: '3', sender_id: 'demo-2', receiver_id: 'me', content: 'Are you going to Zilker this weekend?', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
+  ],
+  'demo-3': [
+    { id: '1', sender_id: 'demo-3', receiver_id: 'me', content: 'Hi! Just wanted to say your dog is adorable!', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() },
+    { id: '2', sender_id: 'me', receiver_id: 'demo-3', content: 'Aww thank you! Luna is such a sweetheart too', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString() },
+    { id: '3', sender_id: 'demo-3', receiver_id: 'me', content: 'Luna loved meeting your pup! Such a sweetie', read_at: null, created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
+  ],
+};
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(DEMO_MODE ? 'me' : null);
   const [sending, setSending] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [hasBlockedMe, setHasBlockedMe] = useState(false);
+  const [loading, setLoading] = useState(!DEMO_MODE);
   const flatListRef = useRef<FlatList>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const setup = async () => {
+      // Demo mode - load demo messages
+      if (DEMO_MODE && id && DEMO_MESSAGES[id]) {
+        setMessages(DEMO_MESSAGES[id]);
+        setLoading(false);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        fetchMessages(user.id);
-        markAsRead(user.id);
-        subscribeToMessages(user.id);
+
+        // Check if either user has blocked the other
+        const { data: blockedByMe } = await supabase
+          .from('blocked_users')
+          .select('id')
+          .eq('blocker_id', user.id)
+          .eq('blocked_id', id)
+          .single();
+
+        const { data: blockedMe } = await supabase
+          .from('blocked_users')
+          .select('id')
+          .eq('blocker_id', id)
+          .eq('blocked_id', user.id)
+          .single();
+
+        setIsBlocked(!!blockedByMe);
+        setHasBlockedMe(!!blockedMe);
+
+        if (!blockedByMe && !blockedMe) {
+          fetchMessages(user.id);
+          markAsRead(user.id);
+          subscribeToMessages(user.id);
+        }
+
+        setLoading(false);
       }
     };
     setup();
@@ -129,11 +188,44 @@ export default function ChatScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Show blocked state
+  if (isBlocked || hasBlockedMe) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="ban-outline" size={48} color={colors.textMuted} />
+        <Text style={styles.blockedTitle}>
+          {isBlocked ? 'You blocked this user' : 'You cannot message this user'}
+        </Text>
+        <Text style={styles.blockedText}>
+          {isBlocked
+            ? 'Unblock them from their profile to resume messaging.'
+            : 'This conversation is no longer available.'}
+        </Text>
+        {isBlocked && (
+          <TouchableOpacity
+            style={styles.viewProfileButton}
+            onPress={() => router.push(`/(tabs)/profile/${id}`)}
+          >
+            <Text style={styles.viewProfileText}>View Profile</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
       <FlatList
         ref={flatListRef}
@@ -142,13 +234,15 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.messagesList}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
       />
 
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
           placeholder="Type a message..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textMuted}
           value={newMessage}
           onChangeText={setNewMessage}
           multiline
@@ -162,7 +256,7 @@ export default function ChatScreen() {
           <Ionicons
             name="send"
             size={20}
-            color={newMessage.trim() ? '#FFFFFF' : '#9CA3AF'}
+            color={newMessage.trim() ? colors.textInverse : colors.textMuted}
           />
         </TouchableOpacity>
       </View>
@@ -173,11 +267,43 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.xl,
+  },
+  blockedTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
+  blockedText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  viewProfileButton: {
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+  },
+  viewProfileText: {
+    color: colors.textInverse,
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
   messagesList: {
-    padding: 16,
-    gap: 8,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   messageContainer: {
     alignItems: 'flex-start',
@@ -187,54 +313,54 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
   },
   myBubble: {
-    backgroundColor: '#4F46E5',
-    borderBottomRightRadius: 4,
+    backgroundColor: colors.primary,
+    borderBottomRightRadius: spacing.xs,
   },
   theirBubble: {
-    backgroundColor: '#FFFFFF',
-    borderBottomLeftRadius: 4,
+    backgroundColor: colors.surface,
+    borderBottomLeftRadius: spacing.xs,
   },
   messageText: {
-    fontSize: 16,
-    color: '#1F2937',
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
   },
   myMessageText: {
-    color: '#FFFFFF',
+    color: colors.textInverse,
   },
   messageTime: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 4,
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
     alignSelf: 'flex-end',
   },
   myMessageTime: {
-    color: '#C7D2FE',
+    color: 'rgba(255,255,255,0.7)',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 8,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
+    backgroundColor: colors.surfaceHover,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
     maxHeight: 100,
-    color: '#1F2937',
+    color: colors.textPrimary,
   },
   sendButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: colors.primary,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -242,6 +368,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.border,
   },
 });
